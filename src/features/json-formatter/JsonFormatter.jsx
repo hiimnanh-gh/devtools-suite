@@ -1,263 +1,144 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Copy,
-  Check,
-  AlertCircle,
-  Minimize2,
-  Maximize2,
-  Trash2,
-  FileJson,
-  Sparkles,
+  Copy, Check, AlertCircle, Minimize2, Maximize2,
+  Trash2, FileJson, Sparkles,
 } from "lucide-react";
+import "../shared.css";
 import "./JsonFormatter.css";
 
 const DEFAULT_JSON = `{
-  "projectName": "DevTools Suite",
+  "project": "DevTools Suite",
   "version": "1.0.0",
-  "isProduction": false,
-  "features": [
-    "CSS Gradient Generator",
-    "JSON Formatter & Validator"
-  ],
-  "stats": {
-    "activeUsers": 1280,
-    "rating": 4.9
-  },
-  "metadata": null
+  "active": true,
+  "tools": ["CSS Gradient", "JSON Formatter", "SVG Minifier"],
+  "stats": { "users": 1280, "rating": 4.9 },
+  "meta": null
 }`;
 
 export default function JsonFormatter({ onCopy }) {
-  const [rawInput, setRawInput] = useState(DEFAULT_JSON);
-  const [formattedJson, setFormattedJson] = useState("");
-  const [error, setError] = useState(null);
+  const [raw,    setRaw]    = useState(DEFAULT_JSON);
+  const [fmt,    setFmt]    = useState("");
+  const [error,  setError]  = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Parse and validate JSON in real time
   useEffect(() => {
-    if (!rawInput.trim()) {
-      setFormattedJson("");
-      setError(null);
-      return;
-    }
-
+    if (!raw.trim()) { setFmt(""); setError(null); return; }
     try {
-      const parsed = JSON.parse(rawInput);
-      const formatted = JSON.stringify(parsed, null, 2);
-      setFormattedJson(formatted);
+      setFmt(JSON.stringify(JSON.parse(raw), null, 2));
       setError(null);
-    } catch (err) {
-      setError(err.message);
-      setFormattedJson("");
+    } catch (e) {
+      setError(e.message); setFmt("");
     }
-  }, [rawInput]);
+  }, [raw]);
 
-  // Syntax highlighting for the formatted preview
-  const highlightedHtml = useMemo(() => {
-    if (!formattedJson) return "";
-    const escaped = formattedJson
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    return escaped.replace(
-      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-      (match) => {
-        let cls = "json-number";
-        if (/^"/.test(match)) {
-          if (/:$/.test(match)) {
-            cls = "json-key";
-            return `<span class="${cls}">${match.slice(0, -1)}</span><span class="json-punct">:</span>`;
-          } else {
-            cls = "json-string";
+  const highlighted = useMemo(() => {
+    if (!fmt) return "";
+    return fmt
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        (m) => {
+          if (/^"/.test(m)) {
+            if (/:$/.test(m))
+              return `<span class="json-key">${m.slice(0,-1)}</span><span class="json-punct">:</span>`;
+            return `<span class="json-string">${m}</span>`;
           }
-        } else if (/true|false/.test(match)) {
-          cls = "json-boolean";
-        } else if (/null/.test(match)) {
-          cls = "json-null";
+          if (/true|false/.test(m)) return `<span class="json-boolean">${m}</span>`;
+          if (/null/.test(m))       return `<span class="json-null">${m}</span>`;
+          return `<span class="json-number">${m}</span>`;
         }
-        return `<span class="${cls}">${match}</span>`;
-      }
-    );
-  }, [formattedJson]);
+      );
+  }, [fmt]);
 
-  const handleBeautify = () => {
-    if (!rawInput.trim()) return;
-    try {
-      const parsed = JSON.parse(rawInput);
-      const beautified = JSON.stringify(parsed, null, 2);
-      setRawInput(beautified);
-      setFormattedJson(beautified);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleMinify = () => {
-    if (!rawInput.trim()) return;
-    try {
-      const parsed = JSON.parse(rawInput);
-      const minified = JSON.stringify(parsed);
-      setRawInput(minified);
-      setFormattedJson(minified);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  const beautify = () => { try { setRaw(JSON.stringify(JSON.parse(raw), null, 2)); } catch(e){ setError(e.message); } };
+  const minify   = () => { try { setRaw(JSON.stringify(JSON.parse(raw)));           } catch(e){ setError(e.message); } };
+  const clear    = () => { setRaw(""); setFmt(""); setError(null); };
 
   const handleCopy = () => {
-    const textToCopy = formattedJson || rawInput;
-    if (!textToCopy) return;
-
-    navigator.clipboard.writeText(textToCopy);
+    const t = fmt || raw;
+    if (!t) return;
+    navigator.clipboard.writeText(t);
     setCopied(true);
-    if (typeof onCopy === "function") {
-      onCopy(textToCopy);
-    }
+    if (typeof onCopy === "function") onCopy(t);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleClear = () => {
-    setRawInput("");
-    setFormattedJson("");
-    setError(null);
-  };
-
-  const handleLoadSample = () => {
-    setRawInput(DEFAULT_JSON);
-  };
-
   return (
-    <div className="space-y-4">
-      {/* Action Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleBeautify}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 transition-all cursor-pointer"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span>Beautify</span>
+    <div>
+      {/* Toolbar */}
+      <div className="tool-toolbar">
+        <div className="tool-toolbar-left">
+          <button className="btn btn-indigo-outline" onClick={beautify}>
+            <Maximize2 size={13} /> Beautify
           </button>
-          <button
-            type="button"
-            onClick={handleMinify}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 transition-all cursor-pointer"
-          >
-            <Minimize2 className="w-3.5 h-3.5" />
-            <span>Minify</span>
+          <button className="btn btn-secondary" onClick={minify}>
+            <Minimize2 size={13} /> Minify
           </button>
-          <button
-            type="button"
-            onClick={handleLoadSample}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Load Sample</span>
+          <button className="btn btn-ghost" style={{ color: "#818cf8", fontSize: 12 }} onClick={() => setRaw(DEFAULT_JSON)}>
+            <Sparkles size={12} /> Sample
           </button>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="tool-toolbar-right">
+          <button className="btn btn-ghost" onClick={clear}><Trash2 size={13} /></button>
           <button
-            type="button"
-            onClick={handleClear}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear</span>
-          </button>
-          <button
-            type="button"
+            className={`btn ${copied ? "btn-success" : "btn-primary"}`}
             onClick={handleCopy}
-            disabled={!formattedJson && !rawInput.trim()}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
-              copied
-                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
-            }`}
+            disabled={!fmt && !raw.trim()}
           >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copy Clean JSON</span>
-              </>
-            )}
+            {copied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy JSON</>}
           </button>
         </div>
       </div>
 
-      {/* Two-Pane Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Pane: Raw JSON Input */}
-        <div className="flex flex-col h-[400px] rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/60 border-b border-slate-800 text-xs font-medium text-slate-400">
-            <div className="flex items-center gap-2">
-              <FileJson className="w-4 h-4 text-indigo-400" />
-              <span>Raw JSON Input</span>
+      {/* Two-pane */}
+      <div className="two-pane">
+        {/* Input */}
+        <div className="pane">
+          <div className="pane-header">
+            <div className="pane-header-left">
+              <FileJson size={13} color="#818cf8" />
+              Raw Input
             </div>
-            <span className="text-[11px] font-mono text-slate-500">
-              {rawInput.length} chars
-            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>{raw.length} chars</span>
           </div>
-          <div className="relative flex-1 p-3">
+          <div className="pane-body">
             <textarea
-              value={rawInput}
-              onChange={(e) => setRawInput(e.target.value)}
-              placeholder="Paste or type your JSON here..."
+              className="code-editor"
+              value={raw}
+              onChange={(e) => setRaw(e.target.value)}
+              placeholder="Paste JSON here..."
               spellCheck={false}
-              className="json-textarea json-editor-scroll w-full h-full p-3 bg-slate-950/50 text-slate-200 font-mono text-xs rounded-xl resize-none border border-slate-800/80 placeholder:text-slate-600"
             />
           </div>
         </div>
 
-        {/* Right Pane: Formatted Output / Validation */}
-        <div className="flex flex-col h-[400px] rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/60 border-b border-slate-800 text-xs font-medium">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400">Validated Output</span>
-              {error ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                  Invalid JSON
-                </span>
-              ) : rawInput.trim() ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Valid JSON
-                </span>
-              ) : (
-                <span className="text-[11px] text-slate-500">Empty</span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex-1 p-3 overflow-hidden">
+        {/* Output */}
+        <div className="pane">
+          <div className="pane-header">
+            <div className="pane-header-left">Validated Output</div>
             {error ? (
-              <div className="h-full p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 flex flex-col items-start gap-3 text-rose-300">
-                <div className="flex items-center gap-2 text-rose-400 font-semibold text-xs">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>JSON Syntax Error</span>
-                </div>
-                <div className="p-3 w-full bg-slate-950/80 rounded-lg border border-rose-500/20 font-mono text-xs text-rose-200 overflow-auto json-editor-scroll">
-                  {error}
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Please check for missing quotation marks, trailing commas, or unclosed brackets in the raw input.
-                </p>
-              </div>
-            ) : highlightedHtml ? (
-              <pre
-                className="json-editor-scroll w-full h-full p-3 bg-slate-950/50 font-mono text-xs rounded-xl overflow-auto border border-slate-800/80 leading-relaxed select-text"
-                dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-              />
+              <span className="status-badge error">Invalid JSON</span>
+            ) : raw.trim() ? (
+              <span className="status-badge valid">Valid JSON</span>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">
-                Formatted output will appear here...
+              <span className="status-badge empty">Empty</span>
+            )}
+          </div>
+          <div className="pane-body">
+            {error ? (
+              <div className="error-pane">
+                <div className="error-pane-title"><AlertCircle size={14} /> Syntax Error</div>
+                <div className="error-pane-msg">{error}</div>
+                <div className="error-pane-hint">
+                  Check for missing quotes, trailing commas, or unclosed brackets.
+                </div>
+              </div>
+            ) : highlighted ? (
+              <pre className="code-output" dangerouslySetInnerHTML={{ __html: highlighted }} />
+            ) : (
+              <div className="empty-state">
+                <FileJson size={28} color="#1e293b" />
+                Formatted output will appear here
               </div>
             )}
           </div>
