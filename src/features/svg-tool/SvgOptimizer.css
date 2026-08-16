@@ -1,40 +1,50 @@
-/* SvgOptimizer Preview Canvas & Checkerboard Background */
+/* SvgOptimizer specific styles */
 
-.svg-checker-bg {
-  background-color: #0f172a;
-  background-image: 
-    linear-gradient(45deg, #1e293b 25%, transparent 25%), 
-    linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
-    linear-gradient(45deg, transparent 75%, #1e293b 75%), 
-    linear-gradient(-45deg, transparent 75%, #1e293b 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+.svg-checker-canvas {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0c1220;
+  background-image:
+    linear-gradient(45deg, #111827 25%, transparent 25%),
+    linear-gradient(-45deg, #111827 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #111827 75%),
+    linear-gradient(-45deg, transparent 75%, #111827 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+  overflow: hidden;
 }
 
-.svg-preview-container svg {
-  max-width: 100%;
-  max-height: 100%;
+.svg-render {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.svg-render svg {
+  max-width: 80%;
+  max-height: 80%;
   width: auto;
   height: auto;
   display: block;
-  margin: auto;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.5));
 }
 
-.svg-editor-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Stats pill in toolbar */
+.svg-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  font-size: 11.5px;
+  color: #64748b;
+  font-family: var(--font-mono);
+  white-space: nowrap;
 }
-
-.svg-editor-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.svg-editor-scroll::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 9999px;
-}
-
-.svg-editor-scroll::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
+.svg-stat-arrow { color: #334155; }
