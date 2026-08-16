@@ -1,25 +1,157 @@
-/* PomodoroTimer Circular Progress and Ring Animation Styles */
+/* PomodoroTimer Styles */
 
-.pomodoro-progress-circle {
-  transition: stroke-dashoffset 0.8s ease-in-out, stroke 0.4s ease;
-  transform: rotate(-90deg);
-  transform-origin: 50% 50%;
+.pm-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 8px 0;
 }
 
-@keyframes timerPulse {
-  0%, 100% {
-    box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.15), inset 0 0 20px rgba(99, 102, 241, 0.05);
-  }
-  50% {
-    box-shadow: 0 0 35px 2px rgba(99, 102, 241, 0.3), inset 0 0 30px rgba(99, 102, 241, 0.1);
-  }
+/* Mode bar */
+.pm-mode-bar {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  width: 100%;
+}
+.pm-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.pm-mode-btn:hover { color: #94a3b8; background: rgba(255,255,255,0.04); }
+.pm-mode-btn.active {
+  background: rgba(255,255,255,0.08);
+  color: var(--m-color, #6366f1);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
 }
 
-.pomodoro-active-glow {
-  animation: timerPulse 3s infinite ease-in-out;
+/* Ring container */
+.pm-ring-wrap {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  flex-shrink: 0;
 }
+.pm-svg { width: 100%; height: 100%; }
 
-.pomodoro-digit-display {
+/* Center display */
+.pm-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+}
+.pm-ring-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #334155;
+}
+.pm-ring-time {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -3px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
+  transition: color 0.4s ease;
+}
+.pm-ring-sub {
+  font-size: 11.5px;
+  color: #475569;
+  font-weight: 500;
+}
+.pm-ring-pct {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  opacity: 0.7;
+}
+
+/* Controls */
+.pm-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pm-btn-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.pm-btn-icon:hover { background: rgba(255,255,255,0.08); color: #94a3b8; }
+
+.pm-btn-play {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 32px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: -0.2px;
+}
+.pm-btn-play:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.pm-btn-play:active { transform: translateY(0); }
+
+/* Session counter */
+.pm-sessions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  font-size: 12.5px;
+}
+.pm-sessions-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #64748b;
+}
+.pm-sessions-reset {
+  font-size: 11px;
+  color: #334155;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.pm-sessions-reset:hover { color: #e11d48; }
+
+@keyframes pmPulse {
+  0%,100% { box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+  50%      { box-shadow: 0 0 35px rgba(99,102,241,0.35); }
 }

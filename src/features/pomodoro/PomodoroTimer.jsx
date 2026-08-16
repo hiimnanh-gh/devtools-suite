@@ -1,307 +1,143 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  Timer,
-  CheckCircle2,
-  Volume2,
-  VolumeX,
-  Coffee,
-  Brain,
-  Sparkles,
-} from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Play, Pause, RotateCcw, CheckCircle2, Volume2, VolumeX, Brain, Coffee, Sparkles } from "lucide-react";
 import "./PomodoroTimer.css";
 
 const MODES = {
-  focus: {
-    id: "focus",
-    label: "Focus",
-    duration: 25 * 60, // 25 minutes
-    icon: Brain,
-    color: "#6366f1", // indigo
-    glowClass: "text-indigo-400",
-  },
-  shortBreak: {
-    id: "shortBreak",
-    label: "Short Break",
-    duration: 5 * 60, // 5 minutes
-    icon: Coffee,
-    color: "#10b981", // emerald
-    glowClass: "text-emerald-400",
-  },
-  longBreak: {
-    id: "longBreak",
-    label: "Long Break",
-    duration: 15 * 60, // 15 minutes
-    icon: Sparkles,
-    color: "#8b5cf6", // purple
-    glowClass: "text-purple-400",
-  },
+  focus:      { id:"focus",      label:"Focus",       duration:25*60, icon:Brain,    color:"#6366f1", track:"#312e81" },
+  shortBreak: { id:"shortBreak", label:"Short Break",  duration:5*60,  icon:Coffee,   color:"#10b981", track:"#064e3b" },
+  longBreak:  { id:"longBreak",  label:"Long Break",   duration:15*60, icon:Sparkles, color:"#8b5cf6", track:"#4c1d95" },
 };
 
-// Gentle chime using Web Audio API
 function playChime() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.type = "sine";
-    // Gentle pleasant chime: D5 (587.33Hz) -> A5 (880Hz)
     osc.frequency.setValueAtTime(587.33, now);
     osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
-
     gain.gain.setValueAtTime(0.001, now);
     gain.gain.exponentialRampToValueAtTime(0.3, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.85);
-  } catch {
-    // Ignore audio context autoplay limitations
-  }
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.85);
+  } catch {}
 }
 
-export default function PomodoroTimer({ onCopy }) {
-  const [activeMode, setActiveMode] = useState("focus");
-  const [timeLeft, setTimeLeft] = useState(MODES.focus.duration);
-  const [isRunning, setIsRunning] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    return localStorage.getItem("devtools_pomo_sound") !== "false";
-  });
-  const [sessions, setSessions] = useState(() => {
-    const saved = localStorage.getItem("devtools_pomo_sessions");
-    return saved ? parseInt(saved, 10) : 0;
-  });
-
+export default function PomodoroTimer() {
+  const [mode,     setMode]    = useState("focus");
+  const [timeLeft, setTime]    = useState(MODES.focus.duration);
+  const [running,  setRunning] = useState(false);
+  const [sound,    setSound]   = useState(() => localStorage.getItem("pomo_sound") !== "false");
+  const [sessions, setSession] = useState(() => parseInt(localStorage.getItem("pomo_sessions") || "0", 10));
   const timerRef = useRef(null);
 
-  // Sync session counter to localStorage
-  useEffect(() => {
-    localStorage.setItem("devtools_pomo_sessions", sessions.toString());
-  }, [sessions]);
+  useEffect(() => { localStorage.setItem("pomo_sound",    sound.toString()); }, [sound]);
+  useEffect(() => { localStorage.setItem("pomo_sessions", sessions.toString()); }, [sessions]);
 
-  // Sync sound preference to localStorage
   useEffect(() => {
-    localStorage.setItem("devtools_pomo_sound", soundEnabled.toString());
-  }, [soundEnabled]);
-
-  // Timer interval effect with clean cleanup
-  useEffect(() => {
-    if (isRunning) {
+    if (running) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTime((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            setIsRunning(false);
-
-            if (soundEnabled) {
-              playChime();
-            }
-
-            if (activeMode === "focus") {
-              setSessions((s) => s + 1);
-            }
-
+            setRunning(false);
+            if (sound) playChime();
+            if (mode === "focus") setSession((s) => s + 1);
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
-
+    } else { clearInterval(timerRef.current); }
     return () => clearInterval(timerRef.current);
-  }, [isRunning, activeMode, soundEnabled]);
+  }, [running, mode, sound]);
 
-  const switchMode = (modeKey) => {
-    setIsRunning(false);
-    setActiveMode(modeKey);
-    setTimeLeft(MODES[modeKey].duration);
-  };
+  const switchMode = (m) => { setRunning(false); setMode(m); setTime(MODES[m].duration); };
+  const toggle = () => { if (timeLeft === 0) setTime(MODES[mode].duration); setRunning((p) => !p); };
+  const reset  = () => { setRunning(false); setTime(MODES[mode].duration); };
 
-  const handleTogglePlay = () => {
-    if (timeLeft === 0) {
-      setTimeLeft(MODES[activeMode].duration);
-    }
-    setIsRunning((prev) => !prev);
-  };
+  const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 
-  const handleReset = () => {
-    setIsRunning(false);
-    setTimeLeft(MODES[activeMode].duration);
-  };
-
-  const handleResetSessions = () => {
-    setSessions(0);
-  };
-
-  // Format Time display MM:SS
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  // SVG Circular progress bar values
-  const radius = 110;
-  const circumference = 2 * Math.PI * radius;
-  const currentTotal = MODES[activeMode].duration;
-  const progressRatio = timeLeft / currentTotal;
-  const strokeDashoffset = circumference - progressRatio * circumference;
-
-  const currentConfig = MODES[activeMode];
+  const R = 108;
+  const C = 2 * Math.PI * R;
+  const cfg = MODES[mode];
+  const offset = C - (timeLeft / cfg.duration) * C;
+  const pct = Math.round((timeLeft / cfg.duration) * 100);
 
   return (
-    <div className="space-y-6 flex flex-col items-center max-w-lg mx-auto">
-      {/* Top Header Mode Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md w-full justify-center">
-        {Object.values(MODES).map((mode) => {
-          const Icon = mode.icon;
-          const isActive = activeMode === mode.id;
+    <div className="pm-shell">
+      {/* Mode Selector */}
+      <div className="pm-mode-bar">
+        {Object.values(MODES).map((m) => {
+          const Icon = m.icon;
           return (
-            <button
-              key={mode.id}
-              type="button"
-              onClick={() => switchMode(mode.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex-1 justify-center ${
-                isActive
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{mode.label}</span>
+            <button key={m.id} className={`pm-mode-btn ${mode === m.id ? "active" : ""}`}
+              style={mode === m.id ? { "--m-color": m.color } : {}}
+              onClick={() => switchMode(m.id)}>
+              <Icon size={14} /> {m.label}
             </button>
           );
         })}
       </div>
 
-      {/* Circular Timer Display */}
-      <div className="relative flex items-center justify-center py-4">
-        <div
-          className={`w-72 h-72 rounded-full flex flex-col items-center justify-center relative bg-slate-900/40 border border-slate-800/80 shadow-2xl transition-all duration-500 ${
-            isRunning ? "pomodoro-active-glow" : ""
-          }`}
-        >
-          {/* Circular SVG Ring */}
-          <svg className="w-full h-full absolute inset-0 -rotate-90 pointer-events-none">
-            {/* Background Track */}
-            <circle
-              cx="144"
-              cy="144"
-              r={radius}
-              stroke="#1e293b"
-              strokeWidth="6"
-              fill="transparent"
-            />
-            {/* Animated Progress Circle */}
-            <circle
-              cx="144"
-              cy="144"
-              r={radius}
-              stroke={currentConfig.color}
-              strokeWidth="6"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              fill="transparent"
-              className="pomodoro-progress-circle"
-            />
-          </svg>
+      {/* Timer Ring */}
+      <div className="pm-ring-wrap">
+        <svg className="pm-svg" viewBox="0 0 240 240">
+          {/* Track */}
+          <circle cx="120" cy="120" r={R} fill="none" stroke={cfg.track} strokeWidth="8" />
+          {/* Progress */}
+          <circle
+            cx="120" cy="120" r={R}
+            fill="none"
+            stroke={cfg.color}
+            strokeWidth="8"
+            strokeDasharray={C}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform="rotate(-90 120 120)"
+            style={{ transition: "stroke-dashoffset 0.8s ease, stroke 0.4s ease" }}
+          />
+        </svg>
 
-          {/* Time and Status inside Circle */}
-          <div className="flex flex-col items-center justify-center space-y-1 z-10 select-none">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-              {currentConfig.label}
-            </span>
-            <div className="pomodoro-digit-display text-5xl sm:text-6xl font-extrabold text-white tracking-tight">
-              {formatTime(timeLeft)}
-            </div>
-            <span className="text-xs font-medium text-slate-400 pt-1">
-              {isRunning ? "Session in progress" : timeLeft === 0 ? "Completed!" : "Paused"}
-            </span>
+        {/* Center content */}
+        <div className="pm-ring-center">
+          <div className="pm-ring-label">{cfg.label}</div>
+          <div className="pm-ring-time" style={{ color: running ? cfg.color : "var(--text-primary)" }}>
+            {fmt(timeLeft)}
           </div>
+          <div className="pm-ring-sub">
+            {running ? "Focus in progress" : timeLeft === 0 ? "✓ Completed!" : "Paused"}
+          </div>
+          <div className="pm-ring-pct" style={{ color: cfg.color }}>{pct}%</div>
         </div>
       </div>
 
-      {/* Timer Controls */}
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={handleReset}
-          className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer shadow-lg"
-          title="Reset timer"
-        >
-          <RotateCcw className="w-5 h-5" />
+      {/* Controls */}
+      <div className="pm-controls">
+        <button className="pm-btn-icon" onClick={reset} title="Reset"><RotateCcw size={18} /></button>
+
+        <button className="pm-btn-play" onClick={toggle}
+          style={{ background: running ? "#b45309" : cfg.color, boxShadow: `0 6px 24px ${cfg.color}44` }}>
+          {running ? <><Pause size={18} fill="currentColor" /> Pause</> : <><Play size={18} fill="currentColor" /> {timeLeft === 0 ? "Restart" : "Start"}</>}
         </button>
 
-        <button
-          type="button"
-          onClick={handleTogglePlay}
-          className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm text-white shadow-xl transition-all duration-200 cursor-pointer ${
-            isRunning
-              ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/20"
-              : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30 scale-105"
-          }`}
-        >
-          {isRunning ? (
-            <>
-              <Pause className="w-5 h-5 fill-current" />
-              <span>Pause</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5 fill-current" />
-              <span>{timeLeft === 0 ? "Restart" : "Start Focus"}</span>
-            </>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSoundEnabled((prev) => !prev)}
-          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg ${
-            soundEnabled
-              ? "bg-slate-900 border-slate-800 text-indigo-400 hover:bg-slate-800"
-              : "bg-slate-900/50 border-slate-800/60 text-slate-500 hover:text-slate-300"
-          }`}
-          title={soundEnabled ? "Mute completion chime" : "Enable completion chime"}
-        >
-          {soundEnabled ? (
-            <Volume2 className="w-5 h-5" />
-          ) : (
-            <VolumeX className="w-5 h-5" />
-          )}
+        <button className="pm-btn-icon" onClick={() => setSound((p) => !p)} title={sound ? "Mute" : "Unmute"}>
+          {sound ? <Volume2 size={18} color="#818cf8" /> : <VolumeX size={18} />}
         </button>
       </div>
 
-      {/* Session Counter & Bottom Bar */}
-      <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs">
-        <div className="flex items-center gap-2 text-slate-400">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>
-            Sessions Completed: <strong className="text-white">{sessions}</strong>
-          </span>
+      {/* Session counter */}
+      <div className="pm-sessions">
+        <div className="pm-sessions-left">
+          <CheckCircle2 size={15} color="#34d399" />
+          Sessions completed: <strong style={{ color: "var(--text-primary)" }}>{sessions}</strong>
         </div>
-
         {sessions > 0 && (
-          <button
-            type="button"
-            onClick={handleResetSessions}
-            className="text-[11px] text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
-          >
-            Reset Count
-          </button>
+          <button className="pm-sessions-reset" onClick={() => setSession(0)}>Reset count</button>
         )}
       </div>
     </div>
