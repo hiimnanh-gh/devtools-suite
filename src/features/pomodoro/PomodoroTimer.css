@@ -1,0 +1,25 @@
+/* PomodoroTimer Circular Progress and Ring Animation Styles */
+
+.pomodoro-progress-circle {
+  transition: stroke-dashoffset 0.8s ease-in-out, stroke 0.4s ease;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+@keyframes timerPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.15), inset 0 0 20px rgba(99, 102, 241, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 35px 2px rgba(99, 102, 241, 0.3), inset 0 0 30px rgba(99, 102, 241, 0.1);
+  }
+}
+
+.pomodoro-active-glow {
+  animation: timerPulse 3s infinite ease-in-out;
+}
+
+.pomodoro-digit-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
